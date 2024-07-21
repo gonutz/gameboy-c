@@ -90,6 +90,47 @@ u32   save_size;
 FILE* rom_f;
 FILE* save_f;
 
+typedef enum {
+	screen_unknown,
+	screen_opening_credits,
+	screen_select_player_count,
+	screen_select_game_type,
+	screen_select_level,
+	screen_in_game
+} game_screen;
+
+#define FINGER_PRINT_3(a, b, c) ((a) | ((b) << 2) | ((c) << 4))
+
+game_screen identify_screen() {
+	// screens/finger_print.go says:
+	// finger prints for pixels [(127,56) (114,53) (146,18)]:
+	// screenshot_000.png: [0 3 3] opening credits
+	// screenshot_001.png: [2 3 0] player count selection
+	// screenshot_002.png: [1 1 1] game type selection
+	// screenshot_003.png: [1 0 1] level selection
+	// screenshot_004.png: [0 3 0] in game
+
+	u8 finger_print = FINGER_PRINT_3(
+		gb_fb[56][127] & 3,
+		gb_fb[53][114] & 3,
+		gb_fb[18][146] & 3
+	);
+
+	if(finger_print == FINGER_PRINT_3(0, 3, 3))
+		return screen_opening_credits;
+	if(finger_print == FINGER_PRINT_3(2, 3, 0))
+		return screen_select_player_count;
+	if(finger_print == FINGER_PRINT_3(1, 1, 1))
+		return screen_select_game_type;
+	if(finger_print == FINGER_PRINT_3(1, 0, 1))
+		return screen_select_level;
+	if(finger_print == FINGER_PRINT_3(0, 3, 0))
+		return screen_in_game;
+	return screen_unknown;
+}
+
+// current_screen remembers the screen that was last identified.
+game_screen current_screen = 999; // Start with something invalid.
 
 int main(int argc, char **argv)
 {
@@ -283,6 +324,11 @@ int main(int argc, char **argv)
 
 		// emulate frame
 		RunFrame();
+
+		game_screen last_screen = current_screen;
+		current_screen = identify_screen();
+		if(last_screen != current_screen)
+			printf("game screen: %d\n", current_screen);
 
 		if (gb_framecount == 0)
 		{
