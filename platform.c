@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 			((rom_f = fopen(rom_file, "rb")) != NULL))
 	{
 		printf("%s: Opening %s.\n", __func__, rom_file);
-		(rom_f = fopen(rom_file, "rb")) == NULL;
+		rom_f = fopen(rom_file, "rb");
 	}
 	else
 	{

@@ -617,6 +617,7 @@ u8  F_C;
 u8  N;  s8  SN;
 u16 NN; u32 NNNN;
 u8  D1, D2; // DAA
+u8  low, high;
 
 void RunFrame()
 {
@@ -713,7 +714,9 @@ void StepCPU()
 			F_C = (R_A & 0x01);
 			break;
 		case 0x08: // LD (imm), SP
-			NN = READ(PC++) | READ(PC++) << 8;
+			low = READ(PC++);
+			high = READ(PC++);
+			NN = low | high << 8;
 			WRITE(NN++, SP & 0xFF);
 			WRITE(NN, SP >> 8);
 			break;
@@ -2016,7 +2019,9 @@ void StepCPU()
 			PC = R_HL;
 			break;
 		case 0xEA: // LD (imm), A
-			WRITE(READ(PC++) | READ(PC++) << 8, R_A);
+			low = READ(PC++);
+			high = READ(PC++);
+			WRITE(low | high << 8, R_A);
 			break;
 		case 0xEB: // illegal
 			break;
@@ -2103,7 +2108,9 @@ void StepCPU()
 			SP = R_HL;
 			break;
 		case 0xFA: // LD A, (imm)
-			R_A = READ(READ(PC++) | READ(PC++) << 8);
+			low = READ(PC++);
+			high = READ(PC++);
+			R_A = READ(low | high << 8);
 			break;
 		case 0xFB: // EI
 			gb_ime = 1;
