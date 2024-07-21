@@ -130,7 +130,15 @@ game_screen identify_screen() {
 }
 
 // current_screen remembers the screen that was last identified.
-game_screen current_screen = 999; // Start with something invalid.
+// Start current_screen with something invalid so that the very first time we
+// compare it, we get a change.
+game_screen current_screen = 999;
+
+// last_screen remembers the last screen shown to the player. We use it to
+// detect when the screen is "in a steady state", i.e. when two consecutive
+// frames are identical. There is visual tearing when switching e.g. between
+// the menu and the game state.
+u8 last_screen[LCD_HEIGHT][LCD_WIDTH];
 
 int main(int argc, char **argv)
 {
@@ -152,6 +160,10 @@ int main(int argc, char **argv)
 	FILE* recording_file = fopen("recording", "wb");
 
 	int c;
+
+	// Start last_screen with something invalid. This way the very first
+	// comparison to the current screen is a change.
+	last_screen[0][0] = 0xFF;
 
 	while((c = getopt(argc, argv, "hm:f:")) != -1)
 	{
@@ -329,10 +341,15 @@ int main(int argc, char **argv)
 
 		fwrite(gb_fb, 1, LCD_WIDTH * LCD_HEIGHT, recording_file);
 
-		game_screen last_screen = current_screen;
-		current_screen = identify_screen();
-		if(last_screen != current_screen)
-			printf("game screen: %d\n", current_screen);
+		int skip = (memcmp(last_screen, gb_fb, LCD_WIDTH * LCD_HEIGHT) != 0);
+		memcpy(last_screen, gb_fb, LCD_WIDTH * LCD_HEIGHT);
+		if(!skip) {
+			game_screen last_screen = current_screen;
+			current_screen = identify_screen();
+			if(last_screen != current_screen) {
+				printf("game screen: %d\n", current_screen);
+			}
+		}
 
 		if (gb_framecount == 0)
 		{
