@@ -1,3 +1,12 @@
+# Tetris Bot
+
+Call `run.bat` to build the emulator and run `tetris.gb` which must be located
+in the directory where you execute `run.bat`.
+
+If you do not happen to have a ROM of the Game Boy Tetris version, search the
+internet. I cannot include the ROM in this repository because I do not own the
+rights to it.
+
 # GameBoy Emulator
 
 This is a fork of https://github.com/deltabeard/gameboy-c.
