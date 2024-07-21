@@ -149,6 +149,8 @@ int main(int argc, char **argv)
 	SDL_Renderer *ren = NULL;
 	SDL_Texture *tex = NULL;
 
+	FILE* recording_file = fopen("recording", "wb");
+
 	int c;
 
 	while((c = getopt(argc, argv, "hm:f:")) != -1)
@@ -325,6 +327,8 @@ int main(int argc, char **argv)
 		// emulate frame
 		RunFrame();
 
+		fwrite(gb_fb, 1, LCD_WIDTH * LCD_HEIGHT, recording_file);
+
 		game_screen last_screen = current_screen;
 		current_screen = identify_screen();
 		if(last_screen != current_screen)
@@ -384,6 +388,8 @@ int main(int argc, char **argv)
 	free(rom);
 	free(save);
 	SDL_Quit();
+
+	fclose(recording_file);
 
 	return 0;
 }
