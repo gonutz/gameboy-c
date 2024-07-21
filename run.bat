@@ -1,1 +1,1 @@
-@%~dp0\build.bat && %~dp0\gameboy.exe %*
+@call %~dp0\build.bat && %~dp0\gameboy.exe %*
