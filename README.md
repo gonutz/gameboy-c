@@ -4,10 +4,7 @@ This is a fork of https://github.com/deltabeard/gameboy-c.
 
 This fork provides a way to compile on Windows without external dependencies.
 It bundles [Zig](https://ziglang.org) as the C compiler and includes
-[SDL](https://github.com/libsdl-org/SDL) as a Git submodule. Thus you need to
-clone submodules:
-
-    git clone --recurse-submodules git@github.com:gonutz/gameboy-c.git
+[SDL](https://github.com/libsdl-org/SDL) (as a Git subtree).
 
 To build on 64 bit Windows, call:
 
