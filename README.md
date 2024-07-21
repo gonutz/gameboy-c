@@ -1,8 +1,33 @@
-Note: This project is no longer in active development. Please consider looking at my other Game Boy emulator project [peanut-gb](https://github.com/deltabeard/peanut-gb).
-
 # GameBoy Emulator
 
-A Gameboy emulator written by gregtour. His Javascript port can be found here: http://greg.team-duck.com/emu/gameboy .
+This is a fork of https://github.com/deltabeard/gameboy-c.
+
+This fork provides a way to compile on Windows without external dependencies.
+It bundles [Zig](https://ziglang.org) as the C compiler and includes
+[SDL](https://github.com/libsdl-org/SDL) as a Git submodule. Thus you need to
+clone submodules:
+
+    git clone --recurse-submodules git@github.com:gonutz/gameboy-c.git
+
+To build on 64 bit Windows, call:
+
+    build.bat
+
+which results in `gameboy.exe` in the top-level folder.
+
+To build and run in one step, you can use `run.bat`:
+
+    run.bat -f path/to/tetris.gb
+
+which will build `gameboy.exe` and (on success) run it with the given
+arguments.
+
+Note that the first build takes some time because `build.bat` extracts Zig and
+rebuilds the whole project and its dependencies. After the first build, things
+will be much faster since Zig is already extracted and it has a caching
+mechanism that only builds files that have changed.
+
+Here is the original readme:
 
 ## Features:
 - Very small (about 36KiB compiled).
