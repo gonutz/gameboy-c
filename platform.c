@@ -89,6 +89,7 @@ FILE* save_f;
 int main(int argc, char **argv)
 {
 	int     i, x, y;
+	int     scale = 1;
 	u8      j;
 	u32     romread;
 	u32     old_ticks;
@@ -108,10 +109,14 @@ int main(int argc, char **argv)
 	{
 		switch (c) {
 			case 'h':
-				printf("Usage: %s [-m magnification] -f GB_ROM\n", argv[0]);
+				printf("Usage: %s [-m magnification (1..9)] -f GB_ROM\n", argv[0]);
 				return 0;
 			case 'f':
 				rom_file = optarg;
+				break;
+			case 'm':
+				if('1' <= *optarg && *optarg <= '9')
+					scale = *optarg - '0';
 				break;
 			default:
 				printf("?? getopt returned character code 0%o ??\n", c);
@@ -144,7 +149,7 @@ int main(int argc, char **argv)
 #else
 	SDL_Init(SDL_INIT_VIDEO);
 #endif
-	SDL_CreateWindowAndRenderer(LCD_WIDTH, LCD_HEIGHT, SDL_WINDOW_RESIZABLE,
+	SDL_CreateWindowAndRenderer(scale * LCD_WIDTH, scale * LCD_HEIGHT, SDL_WINDOW_RESIZABLE,
 		&win, &ren);
 	SDL_assert(win != NULL);
 	SDL_assert(ren != NULL);
