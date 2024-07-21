@@ -16,6 +16,9 @@
 #include "gameboy.h"
 #include "sound.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 // emulator data
 int running = 1;
 SDL_Event event;
@@ -76,6 +79,8 @@ char  window_caption_fps[100];
 //char  rom_file_buf[260];
 //char* rom_file = rom_file_buf;
 char  save_file[260];
+char  output_file[260];
+int   output_file_number = 0;
 
 // pointers
 u8*   rom;
@@ -263,6 +268,13 @@ int main(int argc, char **argv)
 				{
 					quit_seq = 0;
 				}
+			}
+			if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F1) {
+				for (y = 0; y < LCD_HEIGHT; y++)
+					for (x = 0; x < LCD_WIDTH; x++)
+						gb_fb[y][x] = gb_fb[y][x] | (gb_fb[y][x] << 2) | (gb_fb[y][x] << 4) | (gb_fb[y][x] << 6);
+				sprintf(output_file, "screenshot_%03d.png", output_file_number++);
+				stbi_write_png(output_file, LCD_WIDTH, LCD_HEIGHT, 1, gb_fb, LCD_WIDTH);
 			}
 		}
 
