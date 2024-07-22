@@ -24,6 +24,7 @@ u32  GetSaveSize(u8* rom);
 void RunFrame();
 void KeyPress(u8 k);
 void KeyRelease(u8 k);
+int  IsKeyDown(u8 k);
 void SetFrameSkip(u8 f);
 
 extern u8 gb_framecount;

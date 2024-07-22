@@ -2401,6 +2401,11 @@ void KeyRelease(u8 key)
 	//R_IF |= CONTROL_INTR;
 }
 
+int IsKeyDown(u8 key)
+{
+	return gb_keys & (0x01 << key);
+}
+
 
 void SetFrameSkip(u8 f)
 {

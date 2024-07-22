@@ -453,7 +453,18 @@ int main(int argc, char **argv)
 		// emulate frame
 		RunFrame();
 
+		u8 key_states[NUM_KEYS] = {
+			IsKeyDown(KeyRight),
+			IsKeyDown(KeyLeft),
+			IsKeyDown(KeyUp),
+			IsKeyDown(KeyDown),
+			IsKeyDown(KeyA),
+			IsKeyDown(KeyB),
+			IsKeyDown(KeySelect),
+			IsKeyDown(KeyStart),
+		};
 		fwrite(gb_fb, 1, LCD_WIDTH * LCD_HEIGHT, recording_file);
+		fwrite(key_states, 1, NUM_KEYS, recording_file);
 
 		int skip = (memcmp(last_screen, gb_fb, LCD_WIDTH * LCD_HEIGHT) != 0);
 		memcpy(last_screen, gb_fb, LCD_WIDTH * LCD_HEIGHT);
