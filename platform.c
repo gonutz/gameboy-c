@@ -51,26 +51,28 @@ u32 ColorTo32(u16 cgb)
 	return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
+// These are the available keys. They correspond to the indices into KEYS.
+// They are of type u8 so we can pass them to KeyPress and KeyRelease.
+const u8 KeyRight  = 0;
+const u8 KeyLeft   = 1;
+const u8 KeyUp     = 2;
+const u8 KeyDown   = 3;
+const u8 KeyA      = 4;
+const u8 KeyB      = 5;
+const u8 KeySelect = 6;
+const u8 KeyStart  = 7;
+
 // key mappings
-#define NUM_KEYS    8
-u32 KEYS[] =
-{
-	SDLK_RIGHT, // control map one
+#define NUM_KEYS 8
+u32 KEYS[] = {
+	SDLK_RIGHT,
 	SDLK_LEFT,
 	SDLK_UP,
 	SDLK_DOWN,
-	SDLK_z,
-	SDLK_x,
-	SDLK_RSHIFT,
-	SDLK_RETURN,
-	SDLK_d,     // control map two
-	SDLK_a,
-	SDLK_w,
-	SDLK_s,
+	SDLK_f,
+	SDLK_d,
 	SDLK_SPACE,
-	SDLK_BACKSPACE,
-	SDLK_LSHIFT,
-	SDLK_ESCAPE
+	SDLK_RETURN,
 };
 
 // strings
@@ -401,21 +403,22 @@ int main(int argc, char **argv)
 				else if (event.key.keysym.sym == SDLK_LCTRL)
 					quit_seq |= 2;
 				else
-					for (j = 0; j < 2*NUM_KEYS; j++)
-						if (KEYS[j] == event.key.keysym.sym)
-						{
-							KeyPress(j%NUM_KEYS);
+					for (j = 0; j < NUM_KEYS; j++) {
+						if (KEYS[j] == event.key.keysym.sym) {
+							KeyPress(j);
 							break;
 						}
+					}
 			}
 			else if(event.type == SDL_KEYUP)
 			{
-				for (j = 0; j < 2*NUM_KEYS; j++)
+				for (j = 0; j < NUM_KEYS; j++) {
 					if (KEYS[j] == event.key.keysym.sym)
 					{
-						KeyRelease(j%NUM_KEYS);
+						KeyRelease(j);
 						break;
 					}
+				}
 				if (event.key.keysym.sym == SDLK_q
 						|| event.key.keysym.sym == SDLK_LCTRL)
 				{

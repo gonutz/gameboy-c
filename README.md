@@ -21,53 +21,20 @@ To build on 64 bit Windows, call:
 
 which results in `gameboy.exe` in the top-level folder.
 
-To build and run in one step, you can use `run.bat`:
-
-    run.bat -f path/to/tetris.gb
-
-which will build `gameboy.exe` and (on success) run it with the given
-arguments.
-
 Note that the first build takes some time because `build.bat` extracts Zig and
 rebuilds the whole project and its dependencies. After the first build, things
 will be much faster since Zig is already extracted and it has a caching
 mechanism that only builds files that have changed.
 
-Here is the original readme:
+## Keys mappings:
 
-## Features:
-- Very small (about 36KiB compiled).
-- SDL and X11 only dependencies on Linux.
-- Preliminary sound support (disabled by default).
+These can be changed in `platform.c`.
 
-Default input can be changed in platform.c.
+Arrow keys for Game Boy's D-Pad.
 
-## Default Keys:
-#### Player 1:
+F and D for Game Boy's A and B buttons.
 
-Arrow keys
-
-z
-
-x
-
-Right_Shift
-
-Return
-
-
-#### Player 2:
-
-WASD keys
-
-Space
-
-Backspace
-
-Left_Shift
-
-Escape
-
+SPACE and ENTER for Game Boy's Select and Start buttons.
 
 #### Special:
 
@@ -81,14 +48,14 @@ Escape
 
 9 = Set frameskip to two (~25x speedup)
 
-r = Use different colour pallete (Red)
+R = Use different colour pallete (Red)
 
-g = Use different colour pallete (Green)
+G = Use different colour pallete (Green)
 
-b = Use different colour pallete (Blue)
+B = Use different colour pallete (Blue)
 
-o = Use different colour pallete (Yellow)
+O = Use different colour pallete (Yellow)
 
-y = Use different colour pallete (Grey - Default)
+Y = Use different colour pallete (Grey - Default)
 
-ctrl+q = Quit
+Ctrl+q = Quit
