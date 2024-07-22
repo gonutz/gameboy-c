@@ -1,6 +1,6 @@
 go run finger_print.go ^
-screenshot_000.png ^
-screenshot_001.png ^
-screenshot_002.png ^
-screenshot_003.png ^
-screenshot_004.png
+0_screenshot_opening_credits.png ^
+1_screenshot_player_count_select.png ^
+2_screenshot_game_type_select.png ^
+3_screenshot_level_select.png ^
+4_screenshot_in_game.png

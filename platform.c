@@ -104,11 +104,11 @@ typedef enum {
 game_screen identify_screen() {
 	// screens/finger_print.go says:
 	// finger prints for pixels [(127,56) (114,53) (146,18)]:
-	// screenshot_000.png: [0 3 3] opening credits
-	// screenshot_001.png: [2 3 0] player count selection
-	// screenshot_002.png: [1 1 1] game type selection
-	// screenshot_003.png: [1 0 1] level selection
-	// screenshot_004.png: [0 3 0] in game
+	// 0_screenshot_opening_credits.png: [0 3 3]
+	// 1_screenshot_player_count_select.png: [2 3 0]
+	// 2_screenshot_game_type_select.png: [1 1 1]
+	// 3_screenshot_level_select.png: [1 0 1]
+	// 4_screenshot_in_game.png: [0 3 0]
 
 	u8 finger_print = FINGER_PRINT_3(
 		gb_fb[56][127] & 3,

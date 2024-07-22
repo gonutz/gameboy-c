@@ -1,22 +1,22 @@
 This folder contains screenshots of the different states of the game:
 
-![0](screenshot_000.png) opening credits
+![0](0_screenshot_opening_credits.png) opening credits
 
-![1](screenshot_001.png) player count selection menu
+![1](1_screenshot_player_count_select.png) player count selection menu
 
-![2](screenshot_002.png) game type selection menu
+![2](2_screenshot_game_type_select.png) game type selection menu
 
-![3](screenshot_003.png) level selection menu
+![3](3_screenshot_level_select.png) level selection menu
 
-![4](screenshot_004.png) in game
+![4](4_screenshot_in_game.png) in game
 
-![5](screenshot_005.png) pause
+![5](5_screenshot_in_game_2.png) pause
 
-![6](screenshot_006.png) game ending, screen fills with bricks
+![6](6_screenshot_in_game_3.png) game ending, screen fills with bricks
 
-![7](screenshot_007.png) game over
+![7](7_screenshot_in_game_4.png) game over
 
-![8](screenshot_008.png) enter name for highscore
+![8](8_screenshot_level_select_2.png) enter name for highscore
 
 From these we can see that there are 5 different screens:
 
