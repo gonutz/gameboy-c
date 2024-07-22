@@ -99,7 +99,17 @@ typedef enum {
 	screen_in_game
 } game_screen;
 
+const char* screen_names[] = {
+	"unknown",
+	"opening credits",
+	"select player count",
+	"select game type",
+	"select level",
+	"in game",
+};
+
 #define FINGER_PRINT_3(a, b, c) ((a) | ((b) << 2) | ((c) << 4))
+#define FINGER_PRINT_4(a, b, c, d) ((a) | ((b) << 2) | ((c) << 4) | ((d) << 6))
 
 game_screen identify_screen() {
 	// screens/finger_print.go says:
@@ -129,6 +139,90 @@ game_screen identify_screen() {
 	return screen_unknown;
 }
 
+typedef enum {
+	tile_unknown,
+	tile_I,
+	tile_Z,
+	tile_S,
+	tile_L,
+	tile_J,
+	tile_O,
+	tile_T,
+	tile_empty,
+	tile_flicker,
+	tile_brick,
+	tile_pause,
+	tile_game_over
+} tetromino;
+
+const char* tetromino_letters = "?IZSLJOT./=PX";
+
+tetromino identify_tetromino(int x, int y) {
+	// tetrominos/finger_print.go says:
+	// finger prints for pixels [(2,1) (2,2) (6,2) (3,3)]:
+	// i0.png: [2 1 1 1]
+	// i1.png: [2 1 2 1]
+	// i2.png: [1 2 1 1]
+	// i3.png: [1 2 2 1]
+	// i4.png: [1 1 2 1]
+	// i5.png: [1 1 1 2]
+	// z.png: [1 1 1 3]
+	// s.png: [2 3 2 0]
+	// l.png: [2 2 2 2]
+	// j.png: [1 3 1 0]
+	// o.png: [0 3 0 3]
+	// t.png: [1 0 1 1]
+	// empty.png: [0 0 0 0]
+	// flicker.png: [1 1 1 1]
+	// brick.png: [0 1 2 1]
+	// pause.png: [0 0 3 3]
+	// game_over.png: [3 0 1 1]
+
+	u8 finger_print = FINGER_PRINT_4(
+		gb_fb[y + 1][x + 2] & 3,
+		gb_fb[y + 2][x + 2] & 3,
+		gb_fb[y + 2][x + 6] & 3,
+		gb_fb[y + 3][x + 3] & 3
+	);
+
+	if(finger_print == FINGER_PRINT_4(2, 1, 1, 1))
+		return tile_I;
+	if(finger_print == FINGER_PRINT_4(2, 1, 2, 1))
+		return tile_I;
+	if(finger_print == FINGER_PRINT_4(1, 2, 1, 1))
+		return tile_I;
+	if(finger_print == FINGER_PRINT_4(1, 2, 2, 1))
+		return tile_I;
+	if(finger_print == FINGER_PRINT_4(1, 1, 2, 1))
+		return tile_I;
+	if(finger_print == FINGER_PRINT_4(1, 1, 1, 2))
+		return tile_I;
+	if(finger_print == FINGER_PRINT_4(1, 1, 1, 3))
+		return tile_Z;
+	if(finger_print == FINGER_PRINT_4(2, 3, 2, 0))
+		return tile_S;
+	if(finger_print == FINGER_PRINT_4(2, 2, 2, 2))
+		return tile_L;
+	if(finger_print == FINGER_PRINT_4(1, 3, 1, 0))
+		return tile_J;
+	if(finger_print == FINGER_PRINT_4(0, 3, 0, 3))
+		return tile_O;
+	if(finger_print == FINGER_PRINT_4(1, 0, 1, 1))
+		return tile_T;
+	if(finger_print == FINGER_PRINT_4(0, 0, 0, 0))
+		return tile_empty;
+	if(finger_print == FINGER_PRINT_4(1, 1, 1, 1))
+		return tile_flicker;
+	if(finger_print == FINGER_PRINT_4(0, 1, 2, 1))
+		return tile_brick;
+	if(finger_print == FINGER_PRINT_4(0, 0, 3, 3))
+		return tile_pause;
+	if(finger_print == FINGER_PRINT_4(3, 0, 1, 1))
+		return tile_game_over;
+
+	return tile_unknown;
+}
+
 // current_screen remembers the screen that was last identified.
 // Start current_screen with something invalid so that the very first time we
 // compare it, we get a change.
@@ -139,6 +233,10 @@ game_screen current_screen = 999;
 // frames are identical. There is visual tearing when switching e.g. between
 // the menu and the game state.
 u8 last_screen[LCD_HEIGHT][LCD_WIDTH];
+
+// The Tetris board is 10 by 18 tiles in size.
+const int board_width = 10;
+const int board_height = 18;
 
 int main(int argc, char **argv)
 {
@@ -331,6 +429,19 @@ int main(int argc, char **argv)
 				sprintf(output_file, "screenshot_%03d.png", output_file_number++);
 				stbi_write_png(output_file, LCD_WIDTH, LCD_HEIGHT, 1, gb_fb, LCD_WIDTH);
 			}
+			if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F2) {
+				printf("game screen: %s\n", screen_names[identify_screen()]);
+				for (y = 0; y < board_height; y++) {
+					for (x = 0; x < board_width; x++) {
+						// The board starts at the top of the screen, 2 tiles
+						// from the left. That is why 2 is added to x.
+						tetromino t = identify_tetromino((2 + x) * 8, y * 8);
+						char letter = tetromino_letters[t];
+						printf("%c", letter);
+					}
+					printf("\n");
+				}
+			}
 		}
 
 		old_ticks = SDL_GetTicks();
@@ -347,7 +458,7 @@ int main(int argc, char **argv)
 			game_screen last_screen = current_screen;
 			current_screen = identify_screen();
 			if(last_screen != current_screen) {
-				printf("game screen: %d\n", current_screen);
+				printf("game screen: %s\n", screen_names[current_screen]);
 			}
 		}
 
