@@ -255,6 +255,7 @@ typedef enum {
 int plan_step_count = 0;
 int next_plan_step = 0;
 plan_step plan_steps[1024];
+int bot_is_playing = 1;
 
 void init_bot() {
 	// Start last_screen with something invalid. This way the very first
@@ -1107,6 +1108,9 @@ int main(int argc, char **argv)
 					printf("\n");
 				}
 			}
+			if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F3) {
+				bot_is_playing = !bot_is_playing;
+			}
 		}
 
 		old_ticks = SDL_GetTicks();
@@ -1115,7 +1119,9 @@ int main(int argc, char **argv)
 		// emulate frame
 		RunFrame();
 
-		update_bot();
+		if(bot_is_playing) {
+			update_bot();
+		}
 
 		u8 key_states[NUM_KEYS] = {
 			IsKeyDown(KeyRight),

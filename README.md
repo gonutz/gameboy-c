@@ -59,3 +59,9 @@ O = Use different colour pallete (Yellow)
 Y = Use different colour pallete (Grey - Default)
 
 Ctrl+q = Quit
+
+F1 = Take a screen shot
+
+F2 = Print the board to stdout
+
+F3 = Toggle whether the Tetris bot is playing (starts as playing)
