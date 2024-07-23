@@ -501,7 +501,7 @@ void copy_tetromino(point dest[4], point source[4]) {
 }
 
 int score_current_board() {
-	return 0; // TODO Find a good metric to evaluate the board.
+	return rand();
 }
 
 void enumerate_all_moves(tetromino active) {
