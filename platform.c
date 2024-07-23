@@ -502,7 +502,7 @@ void copy_tetromino(point dest[4], point source[4]) {
 }
 
 int score_current_board() {
-	int height;
+	int height_sum;
 	int hole_count;
 	int is_line_full[board_height];
 	int full_line_count;
@@ -542,11 +542,11 @@ int score_current_board() {
 		}
 	}
 
-	height = board_height;
+	height_sum = 0;
 	for(y = 0; y < board_height; y++) {
 		for(x = 0; x < board_width; x++) {
-			if(board[y][x] != tile_empty && y < height) {
-				height = y;
+			if(board[y][x] != tile_empty) {
+				height_sum += y;
 			}
 		}
 	}
@@ -580,7 +580,7 @@ int score_current_board() {
 		}
 	}
 
-	int score = height - 2 * hole_count + full_line_count - tall_column_count;
+	int score = height_sum - 10 * hole_count + full_line_count - tall_column_count;
 	return score;
 }
 
