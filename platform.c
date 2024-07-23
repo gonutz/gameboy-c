@@ -504,21 +504,40 @@ void copy_tetromino(point dest[4], point source[4]) {
 int score_current_board() {
 	int height;
 	int hole_count;
-	int line_full[board_height];
+	int is_line_full[board_height];
 	int full_line_count;
+
+	// tall_column_count is the number of empty tile that are covered left and
+	// right.
+	//
+	// Example board (x is a non-empty tile):
+	//
+	// x  x xx
+	// xx x xx
+	// xxxxxxx
+	//   ^ ^
+	//   | |
+	//   | 2 column tiles
+	//   |
+	//   1 column tile
+	//
+	// This board has tall_column_count = 3. Note that the first empty tile in
+	// the top row to the left is not a tall column since its right neighbor is
+	// also empty.
+	int tall_column_count;
 
 	int x, y;
 
 	for(y = 0; y < board_height; y++) {
-		line_full[y] = 1;
+		is_line_full[y] = 1;
 		for(x = 0; x < board_width; x++) {
-			line_full[y] = line_full[y] && board[y][x] != tile_empty;
+			is_line_full[y] = is_line_full[y] && board[y][x] != tile_empty;
 		}
 	}
 
 	full_line_count = 0;
 	for(y = 0; y < board_height; y++) {
-		if(line_full[y]) {
+		if(is_line_full[y]) {
 			full_line_count++;
 		}
 	}
@@ -537,7 +556,7 @@ int score_current_board() {
 		// Find the first non-empty tile in this column. Full lines will be
 		// removed so we do not count them.
 		for(y = 0; y < board_height; y++) {
-			if(!line_full[y] && board[y][x] != tile_empty) {
+			if(!is_line_full[y] && board[y][x] != tile_empty) {
 				break;
 			}
 		}
@@ -550,7 +569,18 @@ int score_current_board() {
 		}
 	}
 
-	int score = height - 2 * hole_count + full_line_count;
+	tall_column_count = 0;
+	for(y = 0; y < board_height; y++) {
+		for(x = 0; x < board_width; x++) {
+			if(board[y][x] == tile_empty &&
+			   (x == 0 || board[y][x-1] != tile_empty) &&
+			   (x == board_width-1 || board[y][x+1] != tile_empty)) {
+					tall_column_count++;
+			}
+		}
+	}
+
+	int score = height - 2 * hole_count + full_line_count - tall_column_count;
 	return score;
 }
 
@@ -815,12 +845,12 @@ void plan_move(bot_move move) {
 
 	}
 
-	// Second, after moving and rotating, we drop the piece to the ground.
-	if(move.down_moves > 0) {
-		plan(press_down_button);
-		wait_n_frames(move.down_moves * 3);
-		plan(release_all_buttons);
-	}
+	// Second, after moving and rotating, we drop the piece to the ground. We
+	// just keep holding the down button. Once the tetromino has dropped all
+	// the way to the ground, the next tetromino at the top will not be
+	// dropping. Once we detect the next tetromino at the top, we release the
+	// down key. See make_game_plan.
+	plan(press_down_button);
 }
 
 void make_game_plan() {
@@ -839,7 +869,11 @@ void make_game_plan() {
 		return;
 	}
 
-	// We have a new tetromino at the top of the board. Make a plan for it.
+	// We have a new tetromino at the top of the board. In case we were still
+	// dropping the last tetromino, we release the down key now. See plan_move.
+	KeyRelease(KeyDown);
+
+	// Make a plan for the new tetromino.
 	enumerate_all_moves(active);
 
 	if(move_count == 0) {
