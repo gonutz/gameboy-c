@@ -225,11 +225,6 @@ tetromino identify_tetromino(int x, int y) {
 	return tile_unknown;
 }
 
-// current_screen remembers the screen that was last identified.
-// Start current_screen with something invalid so that the very first time we
-// compare it, we get a change.
-game_screen current_screen = 999;
-
 // last_screen remembers the last screen shown to the player. We use it to
 // detect when the screen is "in a steady state", i.e. when two consecutive
 // frames are identical. There is visual tearing when switching e.g. between
@@ -239,6 +234,101 @@ u8 last_screen[LCD_HEIGHT][LCD_WIDTH];
 // The Tetris board is 10 by 18 tiles in size.
 const int board_width = 10;
 const int board_height = 18;
+
+void init_bot() {
+	// Start last_screen with something invalid. This way the very first
+	// comparison to the current screen is a change.
+	last_screen[0][0] = 0xFF;
+}
+
+typedef enum {
+	wait_frame,
+	press_start_button,
+	release_start_button,
+} plan_step;
+
+int plan_step_count = 0;
+int next_plan_step = 0;
+plan_step plan_steps[1024];
+
+int has_plan() {
+	return next_plan_step < plan_step_count;
+}
+
+void plan(plan_step step) {
+	plan_steps[plan_step_count++] = step;
+}
+
+void wait_n_frames(int n) {
+	int i;
+	for(i = 0; i < n; i++) {
+		plan(wait_frame);
+	}
+}
+
+void execute_next_step_of_plan() {
+	plan_step step = plan_steps[next_plan_step++];
+
+	switch(step) {
+		case wait_frame:
+			break;
+		case press_start_button:
+			KeyPress(KeyStart);
+			break;
+		case release_start_button:
+			KeyRelease(KeyStart);
+			break;
+		default:
+			printf("unknown plan step %d\n", step);
+	}
+}
+
+void make_new_plan() {
+	plan_step_count = 0;
+	next_plan_step = 0;
+
+	game_screen current_screen = identify_screen();
+
+	if(current_screen == screen_select_player_count ||
+		current_screen == screen_select_game_type ||
+		current_screen == screen_select_level) {
+			// We leave the screen visible so the viewer has an idea what
+			// happens. After the start button was released we wait some frames
+			// because the menu screens will actually be visible for one or two
+			// more frames after the Start button was released. Thus our bot
+			// would hit Start again, really skipping the next menu, even
+			// though it is not yet visible.
+			wait_n_frames(30);
+			plan(press_start_button);
+			plan(release_start_button);
+			wait_n_frames(5);
+	} else if(current_screen == screen_in_game) {
+			// TODO Find a good strategy for playing the game.
+	}
+}
+
+void update_bot() {
+	// We wait until the same screen is visible for two frames until we do
+	// anything. This way we avoid evaluating the screen when tearing occurs.
+	// E.g. when Tetris changes from its opening credits to the first menu,
+	// there is 1 frame of tearing before the menu is fully visible.
+	// We compare the last screen to the current screen and skip this frame if
+	// they differ (potentially due to tearing).
+	int skip_this_frame = (memcmp(last_screen, gb_fb, LCD_WIDTH * LCD_HEIGHT) != 0);
+
+	// In any case, copy the current frame for the next update.
+	memcpy(last_screen, gb_fb, LCD_WIDTH * LCD_HEIGHT);
+
+	if(skip_this_frame) {
+		return;
+	}
+
+	if(has_plan()) {
+		execute_next_step_of_plan();
+	} else {
+		make_new_plan();
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -259,11 +349,9 @@ int main(int argc, char **argv)
 
 	FILE* recording_file = fopen("recording", "wb");
 
-	int c;
+	init_bot();
 
-	// Start last_screen with something invalid. This way the very first
-	// comparison to the current screen is a change.
-	last_screen[0][0] = 0xFF;
+	int c;
 
 	while((c = getopt(argc, argv, "hm:f:")) != -1)
 	{
@@ -453,6 +541,8 @@ int main(int argc, char **argv)
 		// emulate frame
 		RunFrame();
 
+		update_bot();
+
 		u8 key_states[NUM_KEYS] = {
 			IsKeyDown(KeyRight),
 			IsKeyDown(KeyLeft),
@@ -465,16 +555,6 @@ int main(int argc, char **argv)
 		};
 		fwrite(gb_fb, 1, LCD_WIDTH * LCD_HEIGHT, recording_file);
 		fwrite(key_states, 1, NUM_KEYS, recording_file);
-
-		int skip = (memcmp(last_screen, gb_fb, LCD_WIDTH * LCD_HEIGHT) != 0);
-		memcpy(last_screen, gb_fb, LCD_WIDTH * LCD_HEIGHT);
-		if(!skip) {
-			game_screen last_screen = current_screen;
-			current_screen = identify_screen();
-			if(last_screen != current_screen) {
-				printf("game screen: %s\n", screen_names[current_screen]);
-			}
-		}
 
 		if (gb_framecount == 0)
 		{
