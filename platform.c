@@ -501,8 +501,12 @@ void copy_tetromino(point dest[4], point source[4]) {
 }
 
 int score_current_board() {
+	int height;
+	int hole_count;
+
 	int x, y;
-	int height = board_height;
+
+	height = board_height;
 	for(y = 0; y < board_height; y++) {
 		for(x = 0; x < board_width; x++) {
 			if(board[y][x] != tile_empty && y < height) {
@@ -510,7 +514,26 @@ int score_current_board() {
 			}
 		}
 	}
-	return height;
+
+	hole_count = 0;
+	for(x = 0; x < board_width; x++) {
+		// Find the first non-empty tile in this column.
+		for(y = 0; y < board_height; y++) {
+			if(board[y][x] != tile_empty) {
+				break;
+			}
+		}
+
+		// All empty tiles below this are a gap.
+		for(; y < board_height; y++) {
+			if(board[y][x] == tile_empty) {
+				hole_count++;
+			}
+		}
+	}
+
+	int score = height - 2 * hole_count;
+	return score;
 }
 
 void enumerate_all_moves(tetromino active) {
