@@ -232,24 +232,30 @@ tetromino identify_tetromino(int x, int y) {
 u8 last_screen[LCD_HEIGHT][LCD_WIDTH];
 
 // The Tetris board is 10 by 18 tiles in size.
-const int board_width = 10;
-const int board_height = 18;
+#define board_width  10
+#define board_height 18
+
+tetromino board[board_height][board_width];
+
+typedef enum {
+	wait_frame,
+	press_start_button,
+	release_start_button,
+	press_left_button,
+	release_left_button,
+	press_down_button,
+	release_down_button,
+} plan_step;
+
+int plan_step_count = 0;
+int next_plan_step = 0;
+plan_step plan_steps[1024];
 
 void init_bot() {
 	// Start last_screen with something invalid. This way the very first
 	// comparison to the current screen is a change.
 	last_screen[0][0] = 0xFF;
 }
-
-typedef enum {
-	wait_frame,
-	press_start_button,
-	release_start_button,
-} plan_step;
-
-int plan_step_count = 0;
-int next_plan_step = 0;
-plan_step plan_steps[1024];
 
 int has_plan() {
 	return next_plan_step < plan_step_count;
@@ -278,9 +284,85 @@ void execute_next_step_of_plan() {
 		case release_start_button:
 			KeyRelease(KeyStart);
 			break;
+		case press_left_button:
+			KeyPress(KeyLeft);
+			break;
+		case release_left_button:
+			KeyRelease(KeyLeft);
+			break;
+		case press_down_button:
+			KeyPress(KeyDown);
+			break;
+		case release_down_button:
+			KeyRelease(KeyDown);
+			break;
 		default:
 			printf("unknown plan step %d\n", step);
 	}
+}
+
+void read_board_from_screen() {
+	int x, y;
+	for(y = 0; y < board_height; y++) {
+		for(x = 0; x < board_width; x++) {
+			board[y][x] = identify_tetromino((2 + x) * 8, y * 8);
+		}
+	}
+}
+
+int board_has_pause_tile() {
+	int x, y;
+	for(y = 0; y < board_height; y++) {
+		for(x = 0; x < board_width; x++) {
+			if(board[y][x] == tile_pause) {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+int board_has_game_over_tile() {
+	int x, y;
+	for(y = 0; y < board_height; y++) {
+		for(x = 0; x < board_width; x++) {
+			if(board[y][x] == tile_game_over) {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+void make_game_plan() {
+	read_board_from_screen();
+
+	if(board_has_pause_tile() || board_has_game_over_tile()) {
+		wait_n_frames(30);
+		plan(press_start_button);
+		plan(release_start_button);
+		wait_n_frames(5);
+		return;
+	}
+
+	// TODO For now we move all tiles to the left and drop them. This is not
+	// the final strategy...
+
+	plan(press_left_button);
+	plan(release_left_button);
+
+	plan(press_left_button);
+	plan(release_left_button);
+
+	plan(press_left_button);
+	plan(release_left_button);
+
+	plan(press_left_button);
+	plan(release_left_button);
+
+	plan(press_down_button);
+	wait_n_frames(20);
+	plan(release_down_button);
 }
 
 void make_new_plan() {
@@ -303,7 +385,7 @@ void make_new_plan() {
 			plan(release_start_button);
 			wait_n_frames(5);
 	} else if(current_screen == screen_in_game) {
-			// TODO Find a good strategy for playing the game.
+			make_game_plan();
 	}
 }
 
