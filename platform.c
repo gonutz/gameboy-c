@@ -503,6 +503,7 @@ void copy_tetromino(point dest[4], point source[4]) {
 
 int score_current_board() {
 	int height_sum;
+	int max_height;
 	int hole_count;
 	int is_line_full[board_height];
 	int full_line_count;
@@ -551,6 +552,18 @@ int score_current_board() {
 		}
 	}
 
+	max_height = 0;
+	for(y = 0; y < board_height; y++) {
+		for(x = 0; x < board_width; x++) {
+			if(board[y][x] != tile_empty) {
+				max_height = board_height - y;
+				goto max_height_found;
+			}
+		}
+	}
+max_height_found:
+	max_height -= full_line_count;
+
 	hole_count = 0;
 	for(x = 0; x < board_width; x++) {
 		// Find the first non-empty tile in this column. Full lines will be
@@ -580,7 +593,12 @@ int score_current_board() {
 		}
 	}
 
-	int score = height_sum - 10 * hole_count + full_line_count - tall_column_count;
+	int score =
+		height_sum
+		- 20 * hole_count
+		+ full_line_count
+		- 4 * tall_column_count
+		- 10 * max_height;
 	return score;
 }
 

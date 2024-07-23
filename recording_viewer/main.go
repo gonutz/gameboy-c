@@ -97,24 +97,28 @@ func run() error {
 			currentFrame++
 		}
 
-		if window.WasKeyPressed(draw.KeyPageDown) {
-			currentFrame += 100
-		}
-
-		if window.WasKeyPressed(draw.KeyPageDown) {
-			currentFrame += 100
-		}
-
-		if window.WasKeyPressed(draw.KeyPageUp) {
-			currentFrame -= 100
-		}
-
 		if window.WasKeyPressed(draw.KeyRight) {
 			currentFrame++
 		}
 
 		if window.WasKeyPressed(draw.KeyLeft) {
 			currentFrame--
+		}
+
+		if window.WasKeyPressed(draw.KeyDown) {
+			currentFrame += 10
+		}
+
+		if window.WasKeyPressed(draw.KeyUp) {
+			currentFrame -= 10
+		}
+
+		if window.WasKeyPressed(draw.KeyPageDown) {
+			currentFrame += 1000
+		}
+
+		if window.WasKeyPressed(draw.KeyPageUp) {
+			currentFrame -= 1000
 		}
 
 		if window.WasKeyPressed(draw.KeyHome) {
