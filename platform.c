@@ -709,31 +709,32 @@ void enumerate_all_moves(tetromino active) {
 	}
 }
 
+void plan_key_press(plan_step key_press) {
+	plan(key_press);
+	plan(release_all_buttons);
+}
+
 void plan_move_and_rotation(bot_move* move) {
 	if(move->cw_rotations == 3) {
 		if(move->dx > 0) {
 			// Right and CCW.
-			plan(press_B_and_right_buttons);
-			plan(release_all_buttons);
-			move->dx++;
+			plan_key_press(press_B_and_right_buttons);
+			move->dx--;
 		} else {
 			// Left and CCW.
-			plan(press_B_and_left_buttons);
-			plan(release_all_buttons);
-			move->dx--;
+			plan_key_press(press_B_and_left_buttons);
+			move->dx++;
 		}
 		move->cw_rotations = 0;
 	} else {
 		if(move->dx > 0) {
 			// Right and CW.
-			plan(press_A_and_right_buttons);
-			plan(release_all_buttons);
-			move->dx++;
+			plan_key_press(press_A_and_right_buttons);
+			move->dx--;
 		} else {
 			// Left and CW.
-			plan(press_A_and_left_buttons);
-			plan(release_all_buttons);
-			move->dx--;
+			plan_key_press(press_A_and_left_buttons);
+			move->dx++;
 		}
 		move->cw_rotations--;
 	}
@@ -741,25 +742,21 @@ void plan_move_and_rotation(bot_move* move) {
 
 void plan_rotation(bot_move* move) {
 	if(move->cw_rotations == 3) {
-		plan(press_B_button);
-		plan(release_all_buttons);
+		plan_key_press(press_B_button);
 		move->cw_rotations = 0;
 	} else {
-		plan(press_A_button);
-		plan(release_all_buttons);
+		plan_key_press(press_A_button);
 		move->cw_rotations--;
 	}
 }
 
 void plan_movement(bot_move* move) {
-	if(move->dx < 0) {
-		plan(press_left_button);
-		plan(release_all_buttons);
-		move->dx++;
-	} else {
-		plan(press_right_button);
-		plan(release_all_buttons);
+	if(move->dx > 0) {
+		plan_key_press(press_right_button);
 		move->dx--;
+	} else {
+		plan_key_press(press_left_button);
+		move->dx++;
 	}
 }
 
