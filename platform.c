@@ -240,11 +240,16 @@ tetromino board[board_height][board_width];
 typedef enum {
 	wait_frame,
 	press_start_button,
-	release_start_button,
 	press_left_button,
-	release_left_button,
+	press_right_button,
 	press_down_button,
-	release_down_button,
+	press_A_button,
+	press_B_button,
+	press_A_and_left_buttons,
+	press_A_and_right_buttons,
+	press_B_and_left_buttons,
+	press_B_and_right_buttons,
+	release_all_buttons,
 } plan_step;
 
 int plan_step_count = 0;
@@ -281,20 +286,46 @@ void execute_next_step_of_plan() {
 		case press_start_button:
 			KeyPress(KeyStart);
 			break;
-		case release_start_button:
-			KeyRelease(KeyStart);
-			break;
 		case press_left_button:
 			KeyPress(KeyLeft);
 			break;
-		case release_left_button:
-			KeyRelease(KeyLeft);
+		case press_right_button:
+			KeyPress(KeyRight);
 			break;
 		case press_down_button:
 			KeyPress(KeyDown);
 			break;
-		case release_down_button:
+		case press_A_button:
+			KeyPress(KeyA);
+			break;
+		case press_B_button:
+			KeyPress(KeyB);
+			break;
+		case press_A_and_left_buttons:
+			KeyPress(KeyA);
+			KeyPress(KeyLeft);
+			break;
+		case press_A_and_right_buttons:
+			KeyPress(KeyA);
+			KeyPress(KeyRight);
+			break;
+		case press_B_and_left_buttons:
+			KeyPress(KeyB);
+			KeyPress(KeyLeft);
+			break;
+		case press_B_and_right_buttons:
+			KeyPress(KeyB);
+			KeyPress(KeyRight);
+			break;
+		case release_all_buttons:
+			KeyRelease(KeyRight);
+			KeyRelease(KeyLeft);
+			KeyRelease(KeyUp);
 			KeyRelease(KeyDown);
+			KeyRelease(KeyA);
+			KeyRelease(KeyB);
+			KeyRelease(KeySelect);
+			KeyRelease(KeyStart);
 			break;
 		default:
 			printf("unknown plan step %d\n", step);
@@ -334,35 +365,450 @@ int board_has_game_over_tile() {
 	return 0;
 }
 
+// identify_spawned_tetromino checks if a tetromino has just spawned at the top
+// of the board and returns it.
+// If no tetromino is currently in its start position and start rotation,
+// identify_spawned_tetromino returns tile_unknown.
+tetromino identify_spawned_tetromino() {
+
+	if(board[1][3] == tile_I &&
+	   board[1][4] == tile_I &&
+	   board[1][5] == tile_I &&
+	   board[1][6] == tile_I) {
+		return tile_I;
+	}
+
+	if(board[1][3] == tile_Z &&
+	   board[1][4] == tile_Z &&
+	   board[2][4] == tile_Z &&
+	   board[2][5] == tile_Z) {
+		return tile_Z;
+	}
+
+	if(board[1][4] == tile_S &&
+	   board[1][5] == tile_S &&
+	   board[2][3] == tile_S &&
+	   board[2][4] == tile_S) {
+		return tile_S;
+	}
+
+	if(board[1][3] == tile_L &&
+	   board[1][4] == tile_L &&
+	   board[1][5] == tile_L &&
+	   board[2][3] == tile_L) {
+		return tile_L;
+	}
+
+	if(board[1][3] == tile_J &&
+	   board[1][4] == tile_J &&
+	   board[1][5] == tile_J &&
+	   board[2][5] == tile_J) {
+		return tile_J;
+	}
+
+	if(board[1][4] == tile_O &&
+	   board[1][5] == tile_O &&
+	   board[2][4] == tile_O &&
+	   board[2][5] == tile_O) {
+		return tile_O;
+	}
+
+	if(board[1][3] == tile_T &&
+	   board[1][4] == tile_T &&
+	   board[1][5] == tile_T &&
+	   board[2][4] == tile_T) {
+		return tile_T;
+	}
+
+	return tile_unknown;
+}
+
+typedef struct {
+	int x;
+	int y;
+} point;
+
+point new_point(int x, int y) {
+	point p;
+	p.x = x;
+	p.y = y;
+	return p;
+}
+
+typedef struct {
+	int cw_rotations;
+	int dx;
+	int down_moves;
+	int score;
+} bot_move;
+
+// There are 7 tetrominos, up to 4 rotations of each and at most they drop the
+// total board height.
+bot_move all_moves[7 * 4 * board_height];
+int move_count = 0;
+
+void remove_tetromino_from_board(point form[4]) {
+	int i, x, y;
+	for(i = 0; i < 4; i++) {
+		x = form[i].x;
+		y = form[i].y;
+		if(y >= 0) {
+			board[y][x] = tile_empty;
+		}
+	}
+}
+
+void place_tetromino_on_board(point form[4], tetromino tile) {
+	int i, x, y;
+	for(i = 0; i < 4; i++) {
+		x = form[i].x;
+		y = form[i].y;
+		if(y >= 0) {
+			board[y][x] = tile;
+		}
+	}
+}
+
+int collides_with_board(point tetromino[4]) {
+	int i, x, y;
+	for(i = 0; i < 4; i++) {
+		x = tetromino[i].x;
+		y = tetromino[i].y;
+
+		if(x < 0 || x >= board_width || y >= board_height) {
+			// Collide with walls or ground.
+			return 1;
+		}
+
+		if(y >= 0 && board[y][x] != tile_empty) {
+			// Collide with solid tetromino piece.
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void move_tetromino(point tetromino[4], int dx, int dy) {
+	int i;
+	for(i = 0; i < 4; i++) {
+		tetromino[i].x += dx;
+		tetromino[i].y += dy;
+	}
+}
+
+void copy_tetromino(point dest[4], point source[4]) {
+	memcpy(dest, source, 4 * sizeof(point));
+}
+
+int score_current_board() {
+	return 0; // TODO Find a good metric to evaluate the board.
+}
+
+void enumerate_all_moves(tetromino active) {
+	// We first enumerate all the possible rotations for the active tetromino.
+	// Once we have those, we will enumerate all possible moves for all rotated
+	// versions of the tetromino.
+	point tetromino_rotations[4][4];
+	int rotation_count;
+
+	// We hard-code all rotations of the start position.
+	switch(active) {
+		case tile_O:
+			rotation_count = 1;
+
+			tetromino_rotations[0][0] = new_point(4, 1);
+			tetromino_rotations[0][1] = new_point(5, 1);
+			tetromino_rotations[0][2] = new_point(4, 2);
+			tetromino_rotations[0][3] = new_point(5, 2);
+
+			break;
+		case tile_Z:
+			rotation_count = 2;
+
+			tetromino_rotations[0][0] = new_point(3, 1);
+			tetromino_rotations[0][1] = new_point(4, 1);
+			tetromino_rotations[0][2] = new_point(4, 2);
+			tetromino_rotations[0][3] = new_point(5, 2);
+
+			tetromino_rotations[1][0] = new_point(4, 0);
+			tetromino_rotations[1][1] = new_point(4, 1);
+			tetromino_rotations[1][2] = new_point(3, 1);
+			tetromino_rotations[1][3] = new_point(3, 2);
+
+			break;
+		case tile_S:
+			rotation_count = 2;
+
+			tetromino_rotations[0][0] = new_point(4, 1);
+			tetromino_rotations[0][1] = new_point(5, 1);
+			tetromino_rotations[0][2] = new_point(3, 2);
+			tetromino_rotations[0][3] = new_point(4, 2);
+
+			tetromino_rotations[1][0] = new_point(3, 0);
+			tetromino_rotations[1][1] = new_point(3, 1);
+			tetromino_rotations[1][2] = new_point(4, 1);
+			tetromino_rotations[1][3] = new_point(4, 2);
+
+			break;
+		case tile_J:
+			rotation_count = 4;
+
+			tetromino_rotations[0][0] = new_point(3, 1);
+			tetromino_rotations[0][1] = new_point(4, 1);
+			tetromino_rotations[0][2] = new_point(5, 1);
+			tetromino_rotations[0][3] = new_point(5, 2);
+
+			tetromino_rotations[1][0] = new_point(3, 2);
+			tetromino_rotations[1][1] = new_point(4, 0);
+			tetromino_rotations[1][2] = new_point(4, 1);
+			tetromino_rotations[1][3] = new_point(4, 2);
+
+			tetromino_rotations[2][0] = new_point(3, 0);
+			tetromino_rotations[2][1] = new_point(3, 1);
+			tetromino_rotations[2][2] = new_point(4, 1);
+			tetromino_rotations[2][3] = new_point(5, 1);
+
+			tetromino_rotations[3][0] = new_point(4, 0);
+			tetromino_rotations[3][1] = new_point(5, 0);
+			tetromino_rotations[3][2] = new_point(4, 1);
+			tetromino_rotations[3][3] = new_point(4, 2);
+
+			break;
+		case tile_L:
+			rotation_count = 4;
+
+			tetromino_rotations[0][0] = new_point(3, 1);
+			tetromino_rotations[0][1] = new_point(4, 1);
+			tetromino_rotations[0][2] = new_point(5, 1);
+			tetromino_rotations[0][3] = new_point(3, 2);
+
+			tetromino_rotations[1][0] = new_point(3, 0);
+			tetromino_rotations[1][1] = new_point(4, 0);
+			tetromino_rotations[1][2] = new_point(4, 1);
+			tetromino_rotations[1][3] = new_point(4, 2);
+
+			tetromino_rotations[2][0] = new_point(5, 0);
+			tetromino_rotations[2][1] = new_point(3, 1);
+			tetromino_rotations[2][2] = new_point(4, 1);
+			tetromino_rotations[2][3] = new_point(5, 1);
+
+			tetromino_rotations[3][0] = new_point(4, 0);
+			tetromino_rotations[3][1] = new_point(4, 1);
+			tetromino_rotations[3][2] = new_point(4, 2);
+			tetromino_rotations[3][3] = new_point(5, 2);
+
+			break;
+		case tile_T:
+			rotation_count = 4;
+
+			tetromino_rotations[0][0] = new_point(3, 1);
+			tetromino_rotations[0][1] = new_point(4, 1);
+			tetromino_rotations[0][2] = new_point(5, 1);
+			tetromino_rotations[0][3] = new_point(4, 2);
+
+			tetromino_rotations[1][0] = new_point(3, 1);
+			tetromino_rotations[1][1] = new_point(4, 0);
+			tetromino_rotations[1][2] = new_point(4, 1);
+			tetromino_rotations[1][3] = new_point(4, 2);
+
+			tetromino_rotations[2][0] = new_point(4, 0);
+			tetromino_rotations[2][1] = new_point(3, 1);
+			tetromino_rotations[2][2] = new_point(4, 1);
+			tetromino_rotations[2][3] = new_point(5, 1);
+
+			tetromino_rotations[3][0] = new_point(4, 0);
+			tetromino_rotations[3][1] = new_point(4, 1);
+			tetromino_rotations[3][2] = new_point(5, 1);
+			tetromino_rotations[3][3] = new_point(4, 2);
+
+			break;
+		case tile_I:
+			rotation_count = 2;
+
+			tetromino_rotations[0][0] = new_point(3, 1);
+			tetromino_rotations[0][1] = new_point(4, 1);
+			tetromino_rotations[0][2] = new_point(5, 1);
+			tetromino_rotations[0][3] = new_point(6, 1);
+
+			tetromino_rotations[1][0] = new_point(4, -1);
+			tetromino_rotations[1][1] = new_point(4, 0);
+			tetromino_rotations[1][2] = new_point(4, 1);
+			tetromino_rotations[1][3] = new_point(4, 2);
+
+			break;
+
+		default:
+			move_count = 0;
+			return;
+	}
+
+	// We now enumerate all possible moves for all rotations of the active
+	// tetromino. To not have the active tetromino falsely collide with itself
+	// when moving it, we remove it from the board. The board holds all static
+	// tiles, i.e. all previously placed tetrominos. With these we potentially
+	// collide. The active tetromino is still part of the board until now, so
+	// we remove it.
+	remove_tetromino_from_board(tetromino_rotations[0]);
+
+	move_count = 0;
+	bot_move move;
+	int rot;
+	point moving_tetromino[4];
+	for(rot = 0; rot < rotation_count; rot++) {
+		move.cw_rotations = rot;
+
+		// Move the tetromino all the way to the left, and beyond it, one step
+		// into the wall.
+		move.dx = 0;
+		while(!collides_with_board(tetromino_rotations[rot])) {
+			move_tetromino(tetromino_rotations[rot], -1, 0);
+			move.dx--;
+		}
+
+		// Move the tetromino right, testing every horizontal position of the
+		// tetromino. Move it there, then move it all the way down and record
+		// the result.
+		while(1) {
+			move_tetromino(tetromino_rotations[rot], 1, 0);
+			move.dx++;
+
+			if(collides_with_board(tetromino_rotations[rot])) {
+				break;
+			}
+
+			// Create a working copy of the tetromino to move it down.
+			copy_tetromino(moving_tetromino, tetromino_rotations[rot]);
+			move.down_moves = 0;
+
+			while(!collides_with_board(moving_tetromino)) {
+				move_tetromino(moving_tetromino, 0, 1);
+				move.down_moves++;
+			}
+			// We are now stuck in the map, move up by one again.
+			move_tetromino(moving_tetromino, 0, -1);
+			move.down_moves--;
+
+			// Score every legal move by placing the tetromino down, evaluating
+			// the board and removing the tetromino for looking at the next
+			// move.
+			place_tetromino_on_board(moving_tetromino, active);
+			move.score = score_current_board();
+			remove_tetromino_from_board(moving_tetromino);
+
+			all_moves[move_count++] = move;
+		}
+	}
+}
+
+void plan_move_and_rotation(bot_move* move) {
+	if(move->cw_rotations == 3) {
+		if(move->dx > 0) {
+			// Right and CCW.
+			plan(press_B_and_right_buttons);
+			plan(release_all_buttons);
+			move->dx++;
+		} else {
+			// Left and CCW.
+			plan(press_B_and_left_buttons);
+			plan(release_all_buttons);
+			move->dx--;
+		}
+		move->cw_rotations = 0;
+	} else {
+		if(move->dx > 0) {
+			// Right and CW.
+			plan(press_A_and_right_buttons);
+			plan(release_all_buttons);
+			move->dx++;
+		} else {
+			// Left and CW.
+			plan(press_A_and_left_buttons);
+			plan(release_all_buttons);
+			move->dx--;
+		}
+		move->cw_rotations--;
+	}
+}
+
+void plan_rotation(bot_move* move) {
+	if(move->cw_rotations == 3) {
+		plan(press_B_button);
+		plan(release_all_buttons);
+		move->cw_rotations = 0;
+	} else {
+		plan(press_A_button);
+		plan(release_all_buttons);
+		move->cw_rotations--;
+	}
+}
+
+void plan_movement(bot_move* move) {
+	if(move->dx < 0) {
+		plan(press_left_button);
+		plan(release_all_buttons);
+		move->dx++;
+	} else {
+		plan(press_right_button);
+		plan(release_all_buttons);
+		move->dx--;
+	}
+}
+
+void plan_move(bot_move move) {
+	// First we plan the rotation and the horizontal movement.
+	while(move.cw_rotations != 0 || move.dx != 0) {
+
+		if(move.cw_rotations != 0 && move.dx != 0) {
+			plan_move_and_rotation(&move);
+		} else if(move.cw_rotations != 0) {
+			plan_rotation(&move);
+		} else {
+			plan_movement(&move);
+		}
+
+	}
+
+	// Second, after moving and rotating, we drop the piece to the ground.
+	if(move.down_moves > 0) {
+		plan(press_down_button);
+		wait_n_frames(move.down_moves * 3);
+		plan(release_all_buttons);
+	}
+}
+
 void make_game_plan() {
 	read_board_from_screen();
 
 	if(board_has_pause_tile() || board_has_game_over_tile()) {
 		wait_n_frames(30);
 		plan(press_start_button);
-		plan(release_start_button);
+		plan(release_all_buttons);
 		wait_n_frames(5);
 		return;
 	}
 
-	// TODO For now we move all tiles to the left and drop them. This is not
-	// the final strategy...
+	tetromino active = identify_spawned_tetromino();
+	if(active == tile_unknown) {
+		return;
+	}
 
-	plan(press_left_button);
-	plan(release_left_button);
+	// We have a new tetromino at the top of the board. Make a plan for it.
+	enumerate_all_moves(active);
 
-	plan(press_left_button);
-	plan(release_left_button);
+	if(move_count == 0) {
+		// No possible moves.
+		return;
+	}
 
-	plan(press_left_button);
-	plan(release_left_button);
+	int best_move = 0;
+	int i;
+	for(i = 0; i < move_count; i++) {
+		if(all_moves[i].score > all_moves[best_move].score) {
+			best_move = i;
+		}
+	}
 
-	plan(press_left_button);
-	plan(release_left_button);
-
-	plan(press_down_button);
-	wait_n_frames(20);
-	plan(release_down_button);
+	plan_move(all_moves[best_move]);
 }
 
 void make_new_plan() {
@@ -382,7 +828,7 @@ void make_new_plan() {
 			// though it is not yet visible.
 			wait_n_frames(30);
 			plan(press_start_button);
-			plan(release_start_button);
+			plan(release_all_buttons);
 			wait_n_frames(5);
 	} else if(current_screen == screen_in_game) {
 			make_game_plan();
