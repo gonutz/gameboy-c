@@ -36,7 +36,12 @@ func main() {
 }
 
 func run() error {
-	f, err := os.Open("../recording")
+	path := "../recording"
+	if len(os.Args) == 2 {
+		path = os.Args[1]
+	}
+
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}

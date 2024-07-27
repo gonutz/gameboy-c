@@ -507,27 +507,31 @@ int score_current_board() {
 	int hole_count;
 	int is_line_full[board_height];
 	int full_line_count;
-
-	// tall_column_count is the number of empty tile that are covered left and
-	// right.
+	// narrow_columns is the bad score for empty tiles that are blocked left
+	// and right.
 	//
 	// Example board (x is a non-empty tile):
 	//
 	// x  x xx
 	// xx x xx
 	// xxxxxxx
-	//   ^ ^
-	//   | |
-	//   | 2 column tiles
-	//   |
-	//   1 column tile
+	//  ^^ ^
+	//  || |
+	//  || 2 narrow tiles
+	//  ||
+	//  |1 narrow tile
+	//  |
+	//  this is fine
 	//
-	// This board has tall_column_count = 3. Note that the first empty tile in
-	// the top row to the left is not a tall column since its right neighbor is
-	// also empty.
-	int tall_column_count;
+	// This board has a 1 tile narrow column and a 2 tile narrow column. These
+	// scores will be square, so it is a bad score of 1*1 + 2*2.
+	//
+	// Note that the first empty tile in the top row to the left is not a
+	// narrow column since its right neighbor is also empty.
+	int narrow_columns;
 
 	int x, y;
+	int column_height;
 
 	for(y = 0; y < board_height; y++) {
 		is_line_full[y] = 1;
@@ -582,22 +586,34 @@ max_height_found:
 		}
 	}
 
-	tall_column_count = 0;
-	for(y = 0; y < board_height; y++) {
-		for(x = 0; x < board_width; x++) {
+	narrow_columns = 0;
+	for(x = 0; x < board_width; x++) {
+		column_height = 0;
+
+		for(y = 0; y < board_height; y++) {
 			if(board[y][x] == tile_empty &&
 			   (x == 0 || board[y][x-1] != tile_empty) &&
 			   (x == board_width-1 || board[y][x+1] != tile_empty)) {
-					tall_column_count++;
+					break;
 			}
 		}
+
+		for(; y < board_height; y++) {
+			if(board[y][x] == tile_empty) {
+				column_height++;
+			} else {
+				break;
+			}
+		}
+
+		narrow_columns += column_height * column_height;
 	}
 
 	int score =
-		height_sum
-		- 20 * hole_count
-		+ full_line_count
-		- 4 * tall_column_count
+		+ 1 * height_sum
+		- 40 * hole_count
+		+ 1 * full_line_count
+		- 4 * narrow_columns
 		- 10 * max_height;
 	return score;
 }
